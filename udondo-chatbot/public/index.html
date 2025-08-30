@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>惑星のウドンド｜ウドンドに案内してもらう</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+    <h1>惑星のウドンド</h1>
+    <p>右下のボタンからウドンドにご質問ください。</p>
+  </div>
+
+  <div id="chat-bubble">🍜</div>
+  <div id="chat-widget" class="hidden">
+    <div class="chat-header">
+      <h2>ウドンド</h2>
+      <button id="close-btn">×</button>
+    </div>
+    <div id="chat-messages">
+      <div class="message assistant">
+        ...ようこそ。ここは、のんびりと立ち寄れる小さな宇宙船です。
+      </div>
+    </div>
+    <form id="chat-form">
+      <input type="text" id="chat-input" placeholder="質問を入力..." autocomplete="off">
+      <button type="submit">送信</button>
+    </form>
+  </div>
+
+  <script src="widget.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+# ## Dependencies ##
+# ローカルの依存関係パッケージ
+node_modules/
+
+# ## Environment Variables ##
+# APIキーやDB接続情報などの秘密情報
+.env
+
+# ## Logs ##
+# ログファイル
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ## Operating System Files ##
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# ## IDE / Editor Files ##
+# VSCode
+.vscode/
