@@ -1,14 +1,9 @@
 // server/services/chatService.js
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const fs = require('fs').promises;
+const path = require('path');
 
 // Gemini APIを呼び出すための関数をインポート
-import { getChatResponse as getGeminiResponse } from './geminiApiService.js';
-
-// __dirname をESM環境で使えるようにするための設定
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { getChatResponse: getGeminiResponse } = require('./geminiApiService');
 
 // kb.jsonのパスを解決
 const kbPath = path.join(__dirname, '..', 'data', 'kb.json');
@@ -78,4 +73,4 @@ async function generateRagResponse(userMessage) {
   return getGeminiResponse(finalPrompt);
 }
 
-export { generateRagResponse };
+module.exports = { generateRagResponse };
