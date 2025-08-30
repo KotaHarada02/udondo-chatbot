@@ -1,35 +1,81 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>惑星のウドンド｜ウドンドに案内してもらう</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ウドンド AI - 宇宙のうどん知識をお届け</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="container">
+        <!-- 宇宙背景 -->
+        <div class="space-background">
+            <div class="nebula nebula-1"></div>
+            <div class="nebula nebula-2"></div>
+            <div class="nebula nebula-3"></div>
+            
+            <!-- 星々 -->
+            <div class="stars"></div>
+            
+            <!-- 流れ星 -->
+            <div class="shooting-stars">
+                <div class="shooting-star"></div>
+                <div class="shooting-star"></div>
+                <div class="shooting-star"></div>
+            </div>
+        </div>
 
-  <div class="container">
-    <h1>惑星のウドンド</h1>
-    <p>右下のボタンからウドンドにご質問ください。</p>
-  </div>
+        <!-- チャットカード -->
+        <div class="chat-card">
+            <!-- ヘッダー -->
+            <div class="chat-header">
+                <div class="header-content">
+                    <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%202025-08-15%2019.13.18-yyknBVlbXaUSqtmU3PcJxAHVdHvIgs.png" 
+                         alt="ウドンドロゴ" class="logo">
+                    <div class="title-section">
+                        <h1 class="title">ウドンド AI</h1>
+                        <p class="subtitle">宇宙のうどん知識をお届け</p>
+                    </div>
+                </div>
+                <div class="galaxy-icon">🌌</div>
+            </div>
 
-  <div id="chat-bubble">🍜</div>
-  <div id="chat-widget" class="hidden">
-    <div class="chat-header">
-      <h2>ウドンド</h2>
-      <button id="close-btn">×</button>
+            <!-- メッセージエリア -->
+            <div class="messages-container" id="messagesContainer">
+                <div class="message assistant-message">
+                    <div class="avatar bot-avatar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect width="18" height="10" x="3" y="11" rx="2"/>
+                            <circle cx="12" cy="5" r="2"/>
+                            <path d="m12 7 2 3H10l2-3Z"/>
+                        </svg>
+                    </div>
+                    <div class="message-content">
+                        <p>こんにちは！ウドンドAIです。宇宙のうどんについて何でもお聞きください！</p>
+                        <span class="timestamp" id="initialTimestamp"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 入力エリア -->
+            <div class="input-area">
+                <form class="input-form" id="chatForm">
+                    <input type="text" 
+                           id="messageInput" 
+                           placeholder="ウドンドについて質問してください..." 
+                           class="message-input">
+                    <button type="submit" class="send-button" id="sendButton">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m22 2-7 20-4-9-9-4Z"/>
+                            <path d="M22 2 11 13"/>
+                        </svg>
+                    </button>
+                </form>
+                <p class="footer-text">ウドンドAIは宇宙の知識を学習中です。銀河系最高のうどん情報をお届けします。</p>
+            </div>
+        </div>
     </div>
-    <div id="chat-messages">
-      <div class="message assistant">
-        ...ようこそ。ここは、のんびりと立ち寄れる小さな宇宙船です。
-      </div>
-    </div>
-    <form id="chat-form">
-      <input type="text" id="chat-input" placeholder="質問を入力..." autocomplete="off">
-      <button type="submit">送信</button>
-    </form>
-  </div>
 
-  <script src="widget.js"></script>
+    <script src="widget.js"></script>
 </body>
 </html>
