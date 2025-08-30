@@ -24,3 +24,4 @@ Thumbs.db
 # ## IDE / Editor Files ##
 # VSCode
 .vscode/
+chatlog.db
