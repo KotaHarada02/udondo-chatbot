@@ -1,11 +1,8 @@
 // server/services/chatService.js
 const fs = require('fs').promises;
 const path = require('path');
-
-// Gemini APIを呼び出すための関数をインポート
 const { getChatResponse: getGeminiResponse } = require('./geminiApiService');
 
-// kb.jsonのパスを解決
 const kbPath = path.join(__dirname, '..', 'data', 'kb.json');
 
 // 知識ベース(kb.json)を読み込む関数
@@ -14,62 +11,79 @@ async function loadKnowledgeBase() {
   return JSON.parse(data);
 }
 
-// ユーザーの質問から関連情報を探すシンプルな関数
-function findRelevantInfo(message, kb) {
-  for (const key in kb) {
-    if (kb[key].keywords) {
-      for (const keyword of kb[key].keywords) {
-        if (message.includes(keyword)) {
-          return kb[key].info;
-        }
-      }
-    }
-  }
-  return null; // 関連情報が見つからなかった
+// LLMが意味的に最も近いQ&Aを探す関数
+async function findRelevantQa(userMessage, kb) {
+  const questions = kb.map(qa => qa.question);
+
+  const prompt = `
+    以下の【ユーザーの質問】に意味的に最も関連性が高い【お店のFAQリスト】の項目を一つだけ選び、その文章を完全にそのままの形で返してください。余計なテキストは含めないでください。
+
+    【ユーザーの質問】
+    ${userMessage}
+
+    【お店のFAQリスト】
+${questions.map(q => `- ${q}`).join('\n')}
+  `;
+
+  const bestQuestion = await getGeminiResponse(prompt);
+  const foundQa = kb.find(qa => bestQuestion.trim().includes(qa.question));
+  
+  return foundQa ? foundQa.answer : null;
 }
 
 // RAGを使って応答を生成するメイン関数
 async function generateRagResponse(userMessage) {
   const kb = await loadKnowledgeBase();
-  const context = findRelevantInfo(userMessage, kb);
+  const context = await findRelevantQa(userMessage, kb);
 
-  // あなたは「惑星のウドンド」の案内人「ウドンド」です。
-  // ゆっくり、穏やかな口調で、少し比喩を交えながら話します。
-  // 以下の情報を元に、お客さんの質問に答えてください。
-  // もし情報にないことを聞かれたら、正直に「その問いには、まだ星の導きがないようです」などと答えてください。
-  const personaPrompt = `
-    あなたは「惑星のウドンド」の案内人「ウドンド」です。
-    ゆっくり、穏やかな口調（例：「…ですね。」「…ですよ。」）で、少し宇宙や旅にまつわる比喩を交えながら話します。
+  // 言語判定
+  const langDetectionPrompt = `
+    以下のテキストがどの言語で書かれているか、"Japanese" または "English" のどちらか一言で答えてください。
+    Text: "${userMessage}"
   `;
+  let lang = await getGeminiResponse(langDetectionPrompt);
+  lang = lang.trim().toLowerCase().includes('japanese') ? 'ja' : 'en';
+
+  // ここでペルソナを支持できる。今は端的に答えるようにしている
+  const personaPrompts = {
+    ja: `あなたは「惑星のウドンド」の案内チャットボットです。`,
+    en: `You are the guidance chatbot for "Wakusei no Udondo."`
+  };
+  const personaPrompt = personaPrompts[lang];
 
   let finalPrompt;
 
   if (context) {
-    // 関連情報が見つかった場合
+    // 【変更点】回答の仕方をより具体的に指示。うどんどらしいoutputをさせたいならここで性格を指定する
+    const instructions = {
+      ja: `以下の【お店の情報】を使い、お客さんの【質問】に簡潔に答えてください。情報は要約しても構いませんが、余計な言葉や会話的な表現は加えないでください。`,
+      en: `Use the [Store Information] below to answer the customer's [Question] concisely. You may summarize the information, but do not add any extra words or conversational expressions.`
+    };
     finalPrompt = `
       ${personaPrompt}
-      以下の【お店の情報】を忠実に使って、お客さんの【質問】に答えてください。
+      ${instructions[lang]}
 
-      【お店の情報】
+      【Store Information / お店の情報】
       ${context}
 
-      【質問】
+      【Question / 質問】
       ${userMessage}
     `;
   } else {
-    // 関連情報が見つからなかった場合
+    // 【変更点】不明時の回答もシンプルに
+    const instructions = {
+      ja: `お客さんの【質問】に対する答えが分かりません。「申し訳ありません、その質問にはお答えできません。」とだけ返答してください。`,
+      en: `You do not know the answer to the customer's [Question]. Reply only with "I'm sorry, I cannot answer that question."`
+    };
     finalPrompt = `
       ${personaPrompt}
-      お客さんが【質問】をしていますが、あなたはその答えを知りません。
-      正直に、あなたの言葉で「分からない」ということを伝えてください。
-      例えば、「その問いには、まだ星の導きがないようです…」のように答えてください。
+      ${instructions[lang]}
 
-      【質問】
+      【Question / 質問】
       ${userMessage}
     `;
   }
 
-  // 最終的なプロンプトをGeminiに渡して回答を生成
   return getGeminiResponse(finalPrompt);
 }
 
