@@ -1,26 +1,34 @@
 // server/controllers/chatController.js
 
 const { getChatResponse: getTestResponse } = require('../services/testApiService');
-// chatServiceから新しい関数をインポート
 const { generateRagResponse } = require('../services/chatService');
 const { saveConversation } = require('../services/databaseService');
-// .envの設定に応じて、使用するサービスを動的に切り替える
-// geminiモードの時は、新しいchatServiceを使うように変更
-const apiService = process.env.API_SERVICE === 'gemini'
-  ? generateRagResponse
-  : getTestResponse;
 
 async function handleChat(req, res) {
     try {
-      const userMessage = req.body.message;
+      // 【変更】messageとsessionIdをリクエストボディから取得
+      const { message: userMessage, sessionId } = req.body;
+
       if (!userMessage) {
         return res.status(400).json({ error: 'メッセージが必要です' });
       }
+      if (!sessionId) {
+        return res.status(400).json({ error: 'セッションIDが必要です' });
+      }
   
-      const botResponse = await apiService(userMessage);
+      let botResponse;
   
       if (process.env.API_SERVICE === 'gemini') {
-        saveConversation(userMessage, botResponse);
+        // 【変更】sessionIdを渡す（将来の拡張用）
+        botResponse = await generateRagResponse(userMessage, sessionId);
+      } else {
+        // 【変更】sessionIdをテストサービスに渡す
+        botResponse = await getTestResponse(userMessage, sessionId);
+      }
+
+      if (botResponse) {
+        // 【変更】保存時にもsessionIdを渡す
+        saveConversation(sessionId, userMessage, botResponse);
       }
       
       res.json({ reply: botResponse });
@@ -29,5 +37,6 @@ async function handleChat(req, res) {
       console.error('チャット処理中にエラー:', error);
       res.status(500).json({ error: 'サーバーでエラーが発生しました' });
     }
-  }
+}
+
 module.exports = { handleChat };

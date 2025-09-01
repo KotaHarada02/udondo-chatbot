@@ -25,3 +25,4 @@ Thumbs.db
 # VSCode
 .vscode/
 chatlog.db
+chatlog_test.db
