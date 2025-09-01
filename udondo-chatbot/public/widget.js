@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   initializeTimestamp();
 
+  // 初期メッセージを表示（サーバーが起動していなくても表示される）
+  addMessage('こんにちは！ウドンドAIです。宇宙のうどんについて何でもお聞きください！', 'assistant');
+
+  
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const userInput = chatInput.value.trim();
@@ -48,7 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await response.json();
       removeLoadingMessage();
-      addMessage(data.reply, 'assistant');
+      // 【変更】応答データから conversationId を受け取り、addMessageに渡す
+      addMessage(data.reply, 'assistant', data.conversationId);
 
     } catch (error) {
       console.error('メッセージの送受信中にエラーが発生しました:', error);
@@ -60,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 4. メッセージをチャット欄に追加するための関数
-  function addMessage(text, role) {
+  function addMessage(text, role, conversationId) {
     const messageElement = document.createElement('div');
     messageElement.classList.add('message');
     messageElement.classList.add(role === 'user' ? 'user-message' : 'assistant-message');
@@ -103,6 +108,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     messageContent.appendChild(paragraph);
+
+    // 【新機能】assistantのメッセージの場合のみボタンを追加
+    if (role === 'assistant' && conversationId) {
+      const feedbackContainer = document.createElement('div');
+      feedbackContainer.classList.add('feedback-buttons');
+      
+      const goodBtn = document.createElement('button');
+      goodBtn.textContent = '👍 良い';
+      goodBtn.classList.add('feedback-btn');
+      
+      const badBtn = document.createElement('button');
+      badBtn.textContent = '👎 悪い';
+      badBtn.classList.add('feedback-btn');
+      
+      feedbackContainer.appendChild(goodBtn);
+      feedbackContainer.appendChild(badBtn);
+      messageContent.appendChild(feedbackContainer);
+      
+      // ボタンクリック時のイベントリスナー
+      const handleFeedbackClick = async (feedbackType) => {
+        // ボタンを無効化して多重送信を防ぐ
+        goodBtn.disabled = true;
+        badBtn.disabled = true;
+        
+        try {
+          await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conversationId: conversationId,
+              feedbackType: feedbackType
+            })
+          });
+          // 成功したら見た目を少し変えるなどしても良い
+        } catch (error) {
+          console.error('フィードバック送信エラー:', error);
+          // エラーが出てもボタンは無効のままにする
+        }
+      };
+      
+      goodBtn.addEventListener('click', () => handleFeedbackClick('good'));
+      badBtn.addEventListener('click', () => handleFeedbackClick('bad'));
+    }
+    
     messageContent.appendChild(timestamp);
     
     messageElement.appendChild(avatar);

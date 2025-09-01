@@ -27,11 +27,12 @@ async function handleChat(req, res) {
       }
 
       if (botResponse) {
-        // 【変更】保存時にもsessionIdを渡す
-        saveConversation(sessionId, userMessage, botResponse);
+        // 【変更】保存時にもsessionIdを渡し、conversationIdを取得
+        const conversationId = await saveConversation(sessionId, userMessage, botResponse);
+        res.json({ reply: botResponse, conversationId: conversationId });
+      } else {
+        res.json({ reply: '応答がありませんでした。' });
       }
-      
-      res.json({ reply: botResponse });
   
     } catch (error) {
       console.error('チャット処理中にエラー:', error);

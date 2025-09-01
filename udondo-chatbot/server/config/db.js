@@ -26,6 +26,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.error('テーブル作成エラー:', err.message);
       }
     });
+
+    // 【新機能】feedbackテーブル作成
+    db.run(`
+      CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        conversation_id INTEGER NOT NULL,
+        feedback_type TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (conversation_id) REFERENCES conversations (id)
+      )
+    `, (err) => {
+      if (err) {
+        console.error('フィードバックテーブル作成エラー:', err.message);
+      }
+    });
   }
 });
 
