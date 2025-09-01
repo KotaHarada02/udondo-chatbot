@@ -402,4 +402,42 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* --- Quick Reply Buttons (Horizontal Scroll) --- */
+.quick-reply-container {
+  display: flex; /* 子要素を横並びにする */
+  overflow-x: auto; /* 横方向のスクロールを有効にする */
+  padding-bottom: 1rem; /* スクロールバーがコンテンツに重ならないように余白を確保 */
+  margin-bottom: 0.5rem;
+  -ms-overflow-style: none; /* IE, Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Chrome, Safari用のスクロールバー非表示 */
+.quick-reply-container::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-reply-btn {
+  flex-shrink: 0; /* ボタンがコンテナ幅に合わせて縮まないようにする */
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(147, 51, 234, 0.5);
+  color: #e9d5ff;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  margin-right: 0.75rem; /* ボタン間の余白 */
+  white-space: nowrap; /* ボタン内のテキストが改行されないようにする */
+  transition: all 0.2s;
+}
+
+.quick-reply-btn:hover {
+  background: rgba(88, 28, 135, 0.5);
+  border-color: #a78bfa;
+}
+
+.quick-reply-btn:last-child {
+  margin-right: 0;
+}
   

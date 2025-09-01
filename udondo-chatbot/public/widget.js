@@ -1,68 +1,107 @@
 // public/widget.js
 document.addEventListener('DOMContentLoaded', () => {
-  const chatForm = document.getElementById('chatForm');
-  const chatInput = document.getElementById('messageInput');
-  const chatMessages = document.getElementById('messagesContainer');
-  const sendButton = document.getElementById('sendButton');
-  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  
-  //【新機能】チャットセッションごとに一意のIDを生成
-  let chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('messageInput');
+    const chatMessages = document.getElementById('messagesContainer');
+    const sendButton = document.getElementById('sendButton');
+    const quickReplyContainer = document.getElementById('quickReplyContainer'); // コンテナを取得
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-  function initializeTimestamp() {
-    const timestampElement = document.getElementById('initialTimestamp');
-    if (timestampElement) {
-      const now = new Date();
-      timestampElement.textContent = now.toLocaleTimeString('ja-JP', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    }
-  }
-  initializeTimestamp();
+    // よくある質問のリスト（kb.jsonの質問と一致させる）
+    const quickReplies = [
+        "注文方法を教えてください",
+        "商品はどこにありますか？かけうどんはどれですか？",
+        "おすすめのメニューはなんですか？",
+        "お店のルールや注意事項はありますか？",
+        "商品の作り方、調理方法を教えてください"
+    ];
 
-  // 初期メッセージを表示（サーバーが起動していなくても表示される）
-  addMessage('こんにちは！ウドンドAIです。宇宙のうどんについて何でもお聞きください！', 'assistant');
+    // kb.jsonから回答を取得する関数（API呼び出しなし）
+    const getAnswerFromKb = async (question) => {
+        try {
+            const response = await fetch('/api/chat/faq', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    question: question, 
+                    sessionId: sessionId 
+                })
+            });
 
-  
-  chatForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const userInput = chatInput.value.trim();
+            if (!response.ok) throw new Error('FAQ回答の取得に失敗しました');
+            return await response.json();
+        } catch (error) {
+            console.error('FAQ回答の取得中にエラー:', error);
+            throw error;
+        }
+    };
 
-    if (!userInput) return;
+    // メッセージを送信するメインの関数
+    const sendMessage = async (messageText) => {
+        if (!messageText) return;
 
-    sendButton.disabled = true;
-    addMessage(userInput, 'user');
-    chatInput.value = '';
-    showLoadingMessage();
+        addMessage(messageText, 'user');
+        chatInput.value = ''; // 質問ボタンから送信した場合も入力欄を空にする
+        showLoadingMessage();
+        sendButton.disabled = true;
 
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // 【変更】リクエストボディにsessionIdを追加
-        body: JSON.stringify({ message: userInput, sessionId: sessionId }), 
-      });
+        try {
+            // よくある質問かどうかをチェック
+            const isQuickReply = quickReplies.includes(messageText);
+            
+            let data;
+            if (isQuickReply) {
+                // よくある質問の場合：kb.jsonから直接回答を取得（API節約）
+                data = await getAnswerFromKb(messageText);
+            } else {
+                // 通常の質問の場合：Gemini APIを使用
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: messageText, sessionId: sessionId }),
+                });
 
-      if (!response.ok) {
-        throw new Error('サーバーからの応答が正常ではありません。');
-      }
+                if (!response.ok) throw new Error('サーバーからの応答が正常ではありません。');
+                data = await response.json();
+            }
 
-      const data = await response.json();
-      removeLoadingMessage();
-      // 【変更】応答データから conversationId を受け取り、addMessageに渡す
-      addMessage(data.reply, 'assistant', data.conversationId);
+            removeLoadingMessage();
+            addMessage(data.reply, 'assistant', data.conversationId);
+        } catch (error) {
+            console.error('メッセージの送受信中にエラーが発生しました:', error);
+            removeLoadingMessage();
+            addMessage('エラーが発生しました。もう一度お試しください。', 'assistant');
+        } finally {
+            sendButton.disabled = false;
+        }
+    };
+    
+    // チャットの初期化処理
+    const initializeChat = () => {
+        // 1. 挨拶メッセージの取得
+        sendMessage("こんにちは"); // 裏側で「こんにちは」を送信して挨拶を受け取る
 
-    } catch (error) {
-      console.error('メッセージの送受信中にエラーが発生しました:', error);
-      removeLoadingMessage();
-      addMessage('エラーが発生しました。もう一度お試しください。', 'assistant');
-    } finally {
-      sendButton.disabled = false;
-    }
-  });
+        // 2. よくある質問ボタンの生成
+        quickReplies.forEach(text => {
+            const button = document.createElement('button');
+            button.textContent = text;
+            button.classList.add('quick-reply-btn');
+            button.type = 'button'; // formのsubmitを防止
+            button.addEventListener('click', () => {
+                sendMessage(text);
+            });
+            quickReplyContainer.appendChild(button);
+        });
+    };
+
+    initializeChat();
+
+    // ユーザーが手入力で送信する処理
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const userInput = chatInput.value.trim();
+        sendMessage(userInput);
+    });
 
   // 4. メッセージをチャット欄に追加するための関数
   function addMessage(text, role, conversationId) {
