@@ -8,16 +8,13 @@
 </head>
 <body>
     <div class="container">
-        <!-- 宇宙背景 -->
         <div class="space-background">
             <div class="nebula nebula-1"></div>
             <div class="nebula nebula-2"></div>
             <div class="nebula nebula-3"></div>
             
-            <!-- 星々 -->
             <div class="stars"></div>
             
-            <!-- 流れ星 -->
             <div class="shooting-stars">
                 <div class="shooting-star"></div>
                 <div class="shooting-star"></div>
@@ -25,9 +22,10 @@
             </div>
         </div>
 
-        <!-- チャットカード -->
+        <div class="avatar-container">
+            <img src="/assets/avator.png" alt="ウドンド アバター" id="udondoAvatar">
+        </div>
         <div class="chat-card">
-            <!-- ヘッダー -->
             <div class="chat-header">
                 <div class="header-content">
                     <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E3%82%B9%E3%82%AF%E3%83%AA%E3%83%BC%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%83%E3%83%88%202025-08-15%2019.13.18-yyknBVlbXaUSqtmU3PcJxAHVdHvIgs.png" 
@@ -40,13 +38,12 @@
                 <div class="galaxy-icon">🌌</div>
             </div>
 
-            <!-- メッセージエリア -->
             <div class="messages-container" id="messagesContainer">
-                <!-- 初期メッセージはJavaScriptで動的に追加 -->
-            </div>
+                </div>
 
-            <!-- 入力エリア -->
             <div class="input-area">
+                <div class="quick-reply-container" id="quickReplyContainer"></div>
+
                 <form class="input-form" id="chatForm">
                     <input type="text" 
                            id="messageInput" 

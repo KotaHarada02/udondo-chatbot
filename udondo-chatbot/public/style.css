@@ -403,3 +403,40 @@
   cursor: not-allowed;
 }
   
+/* public/style.css */
+
+/* --- Avatar --- */
+.avatar-container {
+  position: absolute;
+  left: 5vw; /* 画面の左端からの距離 */
+  bottom: 5vh; /* 画面の下端からの距離 */
+  z-index: 20;
+  width: 200px; /* アバターのサイズ */
+  height: 200px;
+}
+
+.avatar-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* スマホ表示ではアバターを非表示にする（画面が狭いため） */
+@media (max-width: 768px) {
+  .avatar-container {
+    display: none;
+  }
+}
+
+/* public/style.css */
+
+/* --- Avatar Animation --- */
+@keyframes speaking-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); } /* 少し拡大 */
+  100% { transform: scale(1); }
+}
+
+.avatar-container.is-speaking img {
+  animation: speaking-pulse 1.2s infinite ease-in-out; /* 脈動アニメーション */
+}

@@ -24,7 +24,46 @@ document.addEventListener('DOMContentLoaded', () => {
   // 初期メッセージを表示（サーバーが起動していなくても表示される）
   addMessage('こんにちは！ウドンドAIです。宇宙のうどんについて何でもお聞きください！', 'assistant');
 
+  // 【新機能】テキストを音声で読み上げる関数
+  const udondoAvatar = document.getElementById('udondoAvatar'); // 【追加】アバター画像要素を取得
+
+  // テキストを音声で読み上げる関数
+  const speak = (text) => {
+      if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'ja-JP';
+          utterance.rate = 2.0;
+
+          // 【新機能】音声再生開始時にアニメーションを適用
+          utterance.onstart = () => {
+              if (udondoAvatar) {
+                  udondoAvatar.parentElement.classList.add('is-speaking');
+              }
+          };
+
+          // 【新機能】音声再生終了時にアニメーションを解除
+          utterance.onend = () => {
+              if (udondoAvatar) {
+                  udondoAvatar.parentElement.classList.remove('is-speaking');
+              }
+          };
+          
+          // 【新機能】エラー時もアニメーションを解除
+          utterance.onerror = (event) => {
+              console.error('音声合成エラー:', event);
+              if (udondoAvatar) {
+                  udondoAvatar.parentElement.classList.remove('is-speaking');
+              }
+          };
+
+          window.speechSynthesis.speak(utterance);
+      } else {
+          console.log('このブラウザは音声合成に対応していません。');
+      }
+  };
   
+
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const userInput = chatInput.value.trim();
@@ -111,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 【新機能】assistantのメッセージの場合のみボタンを追加
     if (role === 'assistant' && conversationId) {
+      speak(text);
       const feedbackContainer = document.createElement('div');
       feedbackContainer.classList.add('feedback-buttons');
       
