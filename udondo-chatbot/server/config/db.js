@@ -12,17 +12,20 @@ if (process.env.DATABASE_URL) {
   });
 
   const createTable = async () => {
-    const query = `
+    const conversationsQuery = `
       CREATE TABLE IF NOT EXISTS conversations (
         id SERIAL PRIMARY KEY,
         chat_id TEXT NOT NULL,
         user_message TEXT NOT NULL,
         bot_response TEXT NOT NULL,
+        feedback_type TEXT CHECK (feedback_type IN ('good', 'bad')),
+        feedback_timestamp TIMESTAMPTZ,
         timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
     `;
+    
     try {
-      await pool.query(query);
+      await pool.query(conversationsQuery);
       console.log('PostgreSQLのテーブルが正常に準備できました。');
     } catch (err) {
       console.error('テーブル作成エラー:', err);
@@ -42,15 +45,20 @@ if (process.env.DATABASE_URL) {
     if (err) return console.error('SQLite接続エラー:', err.message);
     
     console.log(`SQLiteに正常に接続しました。パス: ${dbPath}`);
+    
+    // conversationsテーブルを作成
     db.run(`
       CREATE TABLE IF NOT EXISTS conversations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         chat_id TEXT NOT NULL,
         user_message TEXT NOT NULL,
         bot_response TEXT NOT NULL,
+        feedback_type TEXT CHECK (feedback_type IN ('good', 'bad')),
+        feedback_timestamp DATETIME,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
   });
   module.exports = { db, isPostgres: false };
 }
