@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // チャットの初期化処理
     const initializeChat = () => {
         // 1. 挨拶メッセージの取得
-        sendMessage("こんにちは"); // 裏側で「こんにちは」を送信して挨拶を受け取る
+        // sendMessage("こんにちは"); // 裏側で「こんにちは」を送信して挨拶を受け取る
 
         // 2. よくある質問ボタンの生成
         quickReplies.forEach(text => {
