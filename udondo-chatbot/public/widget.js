@@ -131,12 +131,22 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
     
-    // メッセージコンテンツ作成
     const messageContent = document.createElement('div');
     messageContent.classList.add('message-content');
     
     const paragraph = document.createElement('p');
-    paragraph.textContent = text;
+    
+    // ▼ ここから修正 ▼
+    // URLを検知して<a>タグに変換する正規表現
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const linkedText = text.replace(urlRegex, (url) => {
+      // URLの末尾にありえる不要な句読点を削除
+      const cleanUrl = url.replace(/[.,!?。)）]$/, '');
+      
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>`;
+    });
+    // textContentの代わりにinnerHTMLを使い、HTMLタグを有効にする
+    paragraph.innerHTML = linkedText;
     
     const timestamp = document.createElement('span');
     timestamp.classList.add('timestamp');
