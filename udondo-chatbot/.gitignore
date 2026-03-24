@@ -1,13 +1,27 @@
 # ## Dependencies ##
-# ローカルの依存関係パッケージ
 node_modules/
 
 # ## Environment Variables ##
-# APIキーやDB接続情報などの秘密情報
 .env
+.env.local
+
+# ## Python ##
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ## Vector Store ##
+backend/data/chroma_db/
+
+# ## Next.js ##
+frontend/.next/
+frontend/out/
 
 # ## Logs ##
-# ログファイル
 logs
 *.log
 npm-debug.log*
@@ -15,14 +29,13 @@ yarn-debug.log*
 yarn-error.log*
 
 # ## Operating System Files ##
-# macOS
 .DS_Store
-
-# Windows
 Thumbs.db
 
 # ## IDE / Editor Files ##
-# VSCode
 .vscode/
+.idea/
+
+# ## Database ##
 chatlog.db
 chatlog_test.db
