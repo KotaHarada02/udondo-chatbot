@@ -1,17 +1,17 @@
 # うどんど Chatbot
 
-FastAPI + LangChain + Gemini + ChromaDB を使った、RAG（Retrieval-Augmented Generation）型の多言語チャットボットです。  
+FastAPI + LangChain + Gemini + Supabase(pgvector) を使った、RAG（Retrieval-Augmented Generation）型の多言語チャットボットです。  
 フロントエンドは Next.js、バックエンドは FastAPI で構成されています。
 
 ## 1. システム概要
 
 - 目的
-	- ナレッジベース（JSON）を根拠に回答するチャットボットを提供する
+	- ナレッジベース（Supabase DB）を根拠に回答するチャットボットを提供する
 - 特徴
 	- RAG構成（検索 + 生成）
 	- SSE（Server-Sent Events）によるストリーミング応答
 	- 日本語/英語対応（フロントのロケール + バックエンドの言語指定）
-	- 起動時にナレッジをベクトルDBへ自動投入
+	- SupabaseのpgvectorとGemini Embeddingを用いた高精度なベクトル類似度検索
 
 ## 2. アーキテクチャ
 
@@ -22,16 +22,45 @@ FastAPI + LangChain + Gemini + ChromaDB を使った、RAG（Retrieval-Augmented
 	- SSEストリームを受信し、逐次画面に反映
 - backend（FastAPI）
 	- `/api/v1/chat` でチャット要求を受ける
-	- ChromaDB から関連文書を検索
+	- クエリをベクトル化し、Supabase(pgvector)から関連文書を検索
 	- Gemini で回答を生成し、SSEで返却
+	- 処理完了後にチャットログをバックグラウンドでDBへ保存
 
-処理フロー（概要）:
+### 処理フロー
 
-1. フロントからユーザー入力を送信
-2. バックエンドがベクトル検索（top-k）を実行
-3. 取得した文書をコンテキストに整形
-4. Geminiへプロンプト送信
-5. 生成トークンをSSEで逐次返却
+```mermaid
+sequenceDiagram
+    participant U as ユーザー
+    participant F as Frontend (Next.js)
+    participant B as Backend (FastAPI)
+    participant S as Supabase (pgvector)
+    participant G as Gemini API
+
+    U->>F: チャット送信
+    F->>B: POST /api/v1/chat
+    
+    rect rgb(200, 220, 240)
+        Note over B,G: 1. 検索フェーズ (Retrieval)
+        B->>G: 質問をベクトル化 (Embedding)
+        G-->>B: 768次元ベクトル
+        B->>S: 類似知識を検索 (match_knowledge)
+        S-->>B: 関連ドキュメントを返却
+    end
+    
+    rect rgb(220, 240, 200)
+        Note over B,F: 2. 生成フェーズ (Generation)
+        B->>B: ドキュメントをコンテキストに整形
+        B->>G: プロンプト送信・回答生成
+        G-->>B: 回答トークン (Stream)
+        B-->>F: SSEでデータを逐次返却
+        F-->>U: 画面にテキストを描画
+    end
+    
+    rect rgb(240, 220, 200)
+        Note over B,S: 3. ログ保存フェーズ
+        B->>S: チャット履歴(user/assistant)をDBに保存
+    end
+```
 
 ## 3. 仕様
 
@@ -40,14 +69,13 @@ FastAPI + LangChain + Gemini + ChromaDB を使った、RAG（Retrieval-Augmented
 - フレームワーク: FastAPI
 - Python: 3.11 以上
 - 主なライブラリ
-	- `langchain`
-	- `langchain-google-genai`
-	- `langchain-chroma`
-	- `chromadb`
+	- `google-genai`
+	- `fastapi` / `uvicorn`
+	- `supabase` (supabase-py)
 	- `sse-starlette`
-- 起動時処理
-	- ナレッジベース JSON を読み込み
-	- ChromaDB に既存データが無い場合のみインジェスト
+- ベクトル検索
+	- 埋め込み: `gemini-embedding-001` (Google GenAI)
+	- 保存先: Supabase PostgreSQL (`pgvector`拡張の `knowledge_base` テーブル)
 
 ### 3.2 フロントエンド
 
@@ -123,15 +151,16 @@ FastAPI + LangChain + Gemini + ChromaDB を使った、RAG（Retrieval-Augmented
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-anon-key
 ```
 
 任意設定（例）:
 
 ```env
 CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
-CHROMA_COLLECTION_NAME=udondo_knowledge
-EMBEDDING_MODEL=models/gemini-embedding-001
-LLM_MODEL=gemini-2.0-flash
+EMBEDDING_MODEL=gemini-embedding-001
+LLM_MODEL=gemini-2.5-flash-lite
 RETRIEVAL_TOP_K=5
 ```
 
@@ -235,8 +264,8 @@ curl -N -X POST http://localhost:8000/api/v1/chat \
 
 ## 8. 開発時の注意点
 
-- バックエンド起動時にインジェストが走るため、初回起動は時間がかかる場合があります
-- すでに ChromaDB にドキュメントがある場合、インジェストはスキップされます
+- ナレッジのインジェスト（ベクトル化）は、必要に応じて `backend/scripts/generate_embeddings.py` を手動で実行してください。
+- バックエンドを初めて稼働させる前に、Supabase で `pgvector` 拡張と `knowledge_base`, `chat_logs` などのテーブル、RPC関数の配備が必要です。
 - CORSで許可していないオリジンからはAPIアクセスできません
 - `.env.local` は機密情報を含むため、リポジトリにコミットしないでください
 
