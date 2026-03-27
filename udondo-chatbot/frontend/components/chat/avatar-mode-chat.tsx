@@ -65,8 +65,21 @@ export function AvatarModeChat({ isTyping, latestMessage }: AvatarModeChatProps)
       {latestMessage && latestMessage.role === "assistant" && (
         <div className={`${hasYoutubeUrl ? "mt-3" : "mt-6"} w-full max-w-sm space-y-2`}>
           <div className="text-center">
-            <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-2xl px-4 py-3">
-              <p className="text-sm text-foreground leading-relaxed line-clamp-3">{latestMessage.content}</p>
+            <div className={`bg-card/60 backdrop-blur-sm border rounded-2xl px-4 py-3 transition-colors duration-300 ${latestMessage.isGenerating ? "border-accent/40 shadow-[0_0_15px_rgba(255,165,0,0.15)]" : "border-border/50"}`}>
+              {!latestMessage.content && latestMessage.isGenerating ? (
+                <div className="flex justify-center gap-1 h-5 items-center">
+                  <span className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              ) : (
+                <p className="text-sm text-foreground leading-relaxed line-clamp-3">
+                  {latestMessage.content}
+                  {latestMessage.isGenerating && (
+                    <span className="inline-block w-2 h-3.5 ml-1 bg-accent/80 animate-pulse align-baseline" />
+                  )}
+                </p>
+              )}
             </div>
           </div>
 
