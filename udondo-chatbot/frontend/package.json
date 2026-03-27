@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "rm -rf api/backend && cp -R ../backend api/backend && next build",
     "dev": "next dev --webpack",
     "lint": "eslint .",
     "start": "next start"
