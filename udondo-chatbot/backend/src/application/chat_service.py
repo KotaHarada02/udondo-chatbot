@@ -31,6 +31,8 @@ class ChatService:
         history: list[ChatMessage],
         language: str = "ja",
         session_id: str | None = None,
+        user_message_id: str | None = None,
+        assistant_message_id: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """
         Process a chat message through the RAG pipeline and stream the response.
@@ -67,6 +69,7 @@ class ChatService:
             try:
                 # Save user message
                 user_entry = ChatLogEntry(
+                    id=user_message_id,
                     session_id=session_id,
                     role="user",
                     content=message,
@@ -76,6 +79,7 @@ class ChatService:
 
                 # Save assistant message
                 assistant_entry = ChatLogEntry(
+                    id=assistant_message_id,
                     session_id=session_id,
                     role="assistant",
                     content=full_response,

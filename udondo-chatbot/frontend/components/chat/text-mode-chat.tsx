@@ -7,9 +7,10 @@ import { ChatBubble } from "./chat-bubble"
 interface TextModeChatProps {
   messages: Message[]
   isTyping: boolean
+  onEvaluate?: (id: string, evaluation: "good" | "bad") => void
 }
 
-export function TextModeChat({ messages, isTyping }: TextModeChatProps) {
+export function TextModeChat({ messages, isTyping, onEvaluate }: TextModeChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -22,7 +23,7 @@ export function TextModeChat({ messages, isTyping }: TextModeChatProps) {
     <div ref={scrollRef} className="relative z-10 h-full overflow-y-auto px-4 py-4 space-y-4">
       <div className="max-w-2xl mx-auto space-y-4">
         {messages.map((message) => (
-          <ChatBubble key={message.id} message={message} />
+          <ChatBubble key={message.id} message={message} onEvaluate={onEvaluate} />
         ))}
 
         {isTyping && (
