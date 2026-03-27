@@ -2,13 +2,10 @@
   "name": "udondo-chatbot-monorepo",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
-    "install": "cd frontend && npm install",
-    "build": "cd frontend && npm run build"
-  },
-  "dependencies": {
-    "next": "^14.2.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "build": "npm run build --workspace=frontend"
   }
 }
