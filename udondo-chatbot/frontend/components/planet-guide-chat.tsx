@@ -69,7 +69,8 @@ function PlanetGuideChatInner() {
       setIsTyping(false);
 
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        // Use NEXT_PUBLIC_API_URL or default to empty string for relative paths (Vercel)
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
         // Prepare history format for API
         const history = messages
           .filter(m => !m.isWelcome) // Or include welcome msg, up to you. Usually we ignore static messages.
