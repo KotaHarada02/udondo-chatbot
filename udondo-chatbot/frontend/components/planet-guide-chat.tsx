@@ -17,6 +17,7 @@ export interface Message {
   youtubeUrl?: string
   isWelcome?: boolean
   evaluation?: "good" | "bad"
+  isGenerating?: boolean
 }
 
 function generateUUID(): string {
@@ -65,7 +66,7 @@ function PlanetGuideChatInner() {
       const assistantId = generateUUID();
       setMessages((prev) => [
         ...prev,
-        { id: assistantId, role: "assistant", content: "" }
+        { id: assistantId, role: "assistant", content: "", isGenerating: true }
       ]);
       setIsTyping(false);
 
@@ -105,6 +106,7 @@ function PlanetGuideChatInner() {
         const decoder = new TextDecoder("utf-8");
         let doneReading = false;
         let aiFullText = "";
+        let buffer = "";
 
         while (!doneReading) {
           const { value, done } = await reader.read();
@@ -114,7 +116,9 @@ function PlanetGuideChatInner() {
           }
 
           const chunkValue = decoder.decode(value, { stream: true });
-          const lines = chunkValue.split('\n');
+          buffer += chunkValue;
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
             if (line.startsWith('data: ')) {
@@ -122,14 +126,15 @@ function PlanetGuideChatInner() {
                 const data = JSON.parse(line.slice(6));
 
                 if (data.error) {
-                  aiFullText += `\nError: ${data.error}`;
+                  const errorMsg = locale === "ja" ? "接続エラーです。もう一度メッセージの送信をお願いします。" : "Connection error. Please try sending your message again.";
+                  aiFullText = aiFullText ? `${aiFullText}\n\n${errorMsg}` : errorMsg;
                   setMessages(prev => prev.map(m =>
-                    m.id === assistantId ? { ...m, content: aiFullText } : m
+                    m.id === assistantId ? { ...m, content: aiFullText, isGenerating: false } : m
                   ));
                 } else if (!data.done) {
                   aiFullText += data.content;
                   setMessages(prev => prev.map(m =>
-                    m.id === assistantId ? { ...m, content: aiFullText } : m
+                    m.id === assistantId ? { ...m, content: aiFullText, isGenerating: true } : m
                   ));
                 }
               } catch (e) {
@@ -139,13 +144,19 @@ function PlanetGuideChatInner() {
           }
         }
 
+        // Streaming finished normally
+        setMessages(prev => prev.map(m =>
+          m.id === assistantId ? { ...m, isGenerating: false } : m
+        ));
+
         // Logs are now saved exclusively by the backend to prevent duplicates
         // Note: metadata such as language and tokens are handled there
 
       } catch (error) {
         console.error("Error fetching chat:", error);
+        const errorMsg = locale === "ja" ? "接続エラーです。もう一度メッセージの送信をお願いします。" : "Connection error. Please try sending your message again.";
         setMessages(prev => prev.map(m =>
-          m.id === assistantId ? { ...m, content: "サーバーに接続できませんでした。もう一度お試しください。" } : m
+          m.id === assistantId ? { ...m, content: errorMsg, isGenerating: false } : m
         ));
       }
     };

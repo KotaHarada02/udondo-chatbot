@@ -28,8 +28,8 @@ export function TextModeChat({ messages, isTyping, onEvaluate }: TextModeChatPro
 
         {isTyping && (
           <div className="flex items-start gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-              <span className="text-sm">🪐</span>
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+              <img src="/images/image.png" alt="AI Typing" className="w-full h-full object-cover" />
             </div>
             <div className="bg-card border border-border/50 rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex gap-1">
