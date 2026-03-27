@@ -36,8 +36,11 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-2.5-flash-lite"
     retrieval_top_k: int = 5
 
+    # .env.local is used for local development; on Vercel, env vars are injected.
+    _env_file_path = Path(__file__).resolve().parent.parent.parent.parent / ".env.local"
+
     model_config = {
-        "env_file": str(Path(__file__).resolve().parent.parent.parent.parent / ".env.local"),
+        "env_file": str(_env_file_path) if _env_file_path.exists() else None,
         "env_file_encoding": "utf-8",
         "extra": "ignore",
     }
