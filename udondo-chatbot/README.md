@@ -67,7 +67,7 @@ sequenceDiagram
 ### 3.1 バックエンド
 
 - フレームワーク: FastAPI
-- Python: 3.11 以上
+- Python: 3.12 以上
 - 主なライブラリ
 	- `google-genai`
 	- `fastapi` / `uvicorn`
@@ -138,7 +138,7 @@ sequenceDiagram
 ### 4.1 必須環境
 
 - macOS / Linux / Windows（WSL含む）
-- Python 3.11+
+- Python 3.12+
 - Node.js 20+
 - npm 10+（または yarn/pnpm/bun）
 - Google Gemini APIキー

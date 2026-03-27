@@ -2,7 +2,7 @@
 name = "udondo-chatbot-backend"
 version = "0.1.0"
 description = "Multi-language RAG Chatbot Backend with FastAPI and LangChain"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
