@@ -1,37 +1,19 @@
 "use client"
 
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import { ThumbsUp, ThumbsDown } from "lucide-react"
 import type { Message } from "@/components/planet-guide-chat"
 import { YoutubeCard } from "./youtube-card"
 
 interface ChatBubbleProps {
   message: Message
+  onEvaluate?: (id: string, evaluation: "good" | "bad") => void
 }
 
-export function ChatBubble({ message }: ChatBubbleProps) {
+export function ChatBubble({ message, onEvaluate }: ChatBubbleProps) {
   const isUser = message.role === "user"
 
-  const parseContent = (content: string) => {
-    // リンクの後に改行や句読点が来ても正しくURLだけを抽出する正規表現
-    const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
-    const parts = content.split(urlRegex)
-    
-    return parts.map((part, index) => {
-      if (part.match(urlRegex)) {
-        return (
-          <a
-            key={index}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline underline-offset-4 text-blue-400 hover:text-blue-300 break-all transition-colors"
-          >
-            {part}
-          </a>
-        )
-      }
-      return <span key={index}>{part}</span>
-    })
-  }
 
   // extract youtube URLs from content
   const extractYoutubeUrls = (content: string) => {
@@ -60,12 +42,55 @@ export function ChatBubble({ message }: ChatBubbleProps) {
               : "bg-card border border-border/50 text-card-foreground rounded-tl-sm"
           }`}
         >
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{parseContent(message.content)}</p>
+          <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ node, ...props }) => (
+                  <a
+                    {...props}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-4 text-blue-400 hover:text-blue-300 break-all transition-colors"
+                  />
+                ),
+                p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2" {...props} />,
+                ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2" {...props} />,
+                li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+                strong: ({ node, ...props }) => <strong className="font-bold" {...props} />,
+                h1: ({ node, ...props }) => <h1 className="text-lg font-bold mb-2" {...props} />,
+                h2: ({ node, ...props }) => <h2 className="text-base font-bold mb-2" {...props} />,
+                h3: ({ node, ...props }) => <h3 className="text-sm font-bold mb-2" {...props} />,
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
         </div>
 
         {youtubeUrls.map((url, i) => (
           <YoutubeCard key={i} url={url} />
         ))}
+
+        {!isUser && !message.isWelcome && onEvaluate && (
+          <div className="flex items-center gap-1.5 pt-1">
+            <button
+              onClick={() => onEvaluate(message.id, "good")}
+              className={`p-1.5 rounded-full transition-colors ${message.evaluation === "good" ? "text-green-400 bg-white/10" : "text-muted-foreground hover:bg-white/5 hover:text-white"}`}
+              title="高く評価"
+            >
+              <ThumbsUp className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onEvaluate(message.id, "bad")}
+              className={`p-1.5 rounded-full transition-colors ${message.evaluation === "bad" ? "text-red-400 bg-white/10" : "text-muted-foreground hover:bg-white/5 hover:text-white"}`}
+              title="低く評価"
+            >
+              <ThumbsDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {isUser && (

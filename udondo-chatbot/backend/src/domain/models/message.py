@@ -26,6 +26,14 @@ class ChatRequest(BaseModel):
         default=None,
         description="Chat session UUID for log grouping",
     )
+    user_message_id: str | None = Field(
+        default=None,
+        description="UUID of the user's message (from frontend)",
+    )
+    assistant_message_id: str | None = Field(
+        default=None,
+        description="UUID of the soon-to-be-generated assistant message (from frontend)",
+    )
 
 
 class ChatChunk(BaseModel):

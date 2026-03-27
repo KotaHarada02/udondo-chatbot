@@ -44,6 +44,8 @@ async def chat_endpoint(
                 history=request.history,
                 language=request.language,
                 session_id=request.session_id,
+                user_message_id=request.user_message_id,
+                assistant_message_id=request.assistant_message_id,
             ):
                 # SSE format: data: <payload>\n\n
                 payload = json.dumps({"content": chunk, "done": False})

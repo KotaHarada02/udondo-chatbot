@@ -16,6 +16,7 @@ export interface Message {
   content: string
   youtubeUrl?: string
   isWelcome?: boolean
+  evaluation?: "good" | "bad"
 }
 
 function generateUUID(): string {
@@ -51,7 +52,7 @@ function PlanetGuideChatInner() {
 
   const handleSendMessage = (content: string) => {
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: generateUUID(),
       role: "user",
       content,
     }
@@ -61,7 +62,7 @@ function PlanetGuideChatInner() {
     // Real API response handling via server-sent events (SSE) style streaming
     const fetchResponse = async () => {
       // Add empty assistant message to stream into
-      const assistantId = (Date.now() + 1).toString();
+      const assistantId = generateUUID();
       setMessages((prev) => [
         ...prev,
         { id: assistantId, role: "assistant", content: "" }
@@ -70,7 +71,10 @@ function PlanetGuideChatInner() {
 
       try {
         // Use NEXT_PUBLIC_API_URL or default to empty string for relative paths (Vercel)
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+        if (!apiUrl && process.env.NODE_ENV === "development") {
+          apiUrl = "http://127.0.0.1:8000";
+        }
         // Prepare history format for API
         const history = messages
           .filter(m => !m.isWelcome) // Or include welcome msg, up to you. Usually we ignore static messages.
@@ -86,6 +90,8 @@ function PlanetGuideChatInner() {
             history: history,
             language: locale === "ja" ? "ja" : "en",
             session_id: sessionId,
+            user_message_id: userMessage.id,
+            assistant_message_id: assistantId,
           }),
         });
 
@@ -114,15 +120,15 @@ function PlanetGuideChatInner() {
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
-                
+
                 if (data.error) {
                   aiFullText += `\nError: ${data.error}`;
-                  setMessages(prev => prev.map(m => 
+                  setMessages(prev => prev.map(m =>
                     m.id === assistantId ? { ...m, content: aiFullText } : m
                   ));
                 } else if (!data.done) {
                   aiFullText += data.content;
-                  setMessages(prev => prev.map(m => 
+                  setMessages(prev => prev.map(m =>
                     m.id === assistantId ? { ...m, content: aiFullText } : m
                   ));
                 }
@@ -138,13 +144,39 @@ function PlanetGuideChatInner() {
 
       } catch (error) {
         console.error("Error fetching chat:", error);
-        setMessages(prev => prev.map(m => 
+        setMessages(prev => prev.map(m =>
           m.id === assistantId ? { ...m, content: "サーバーに接続できませんでした。もう一度お試しください。" } : m
         ));
       }
     };
 
     fetchResponse();
+  }
+
+  const handleEvaluate = async (messageId: string, evaluation: "good" | "bad") => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, evaluation } : msg
+      )
+    )
+
+    try {
+      let apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      if (!apiUrl && process.env.NODE_ENV === "development") {
+        apiUrl = "http://127.0.0.1:8000";
+      }
+
+      await fetch(`${apiUrl}/api/v1/chat/evaluate`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message_id: messageId,
+          evaluation,
+        }),
+      });
+    } catch (err) {
+      console.error("Evaluation error:", err);
+    }
   }
 
   return (
@@ -154,7 +186,7 @@ function PlanetGuideChatInner() {
 
       <div className="flex-1 overflow-hidden">
         {mode === "text" ? (
-          <TextModeChat messages={messages} isTyping={isTyping} />
+          <TextModeChat messages={messages} isTyping={isTyping} onEvaluate={handleEvaluate} />
         ) : (
           <AvatarModeChat isTyping={isTyping} latestMessage={messages[messages.length - 1]} />
         )}
