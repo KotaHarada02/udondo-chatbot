@@ -2,11 +2,12 @@
 Supabase Knowledge Retriever — implements RetrieverPort using Supabase pgvector.
 
 Flow:
-  1. Embed the user query via Gemini Embedding API
-  2. Call Supabase RPC `match_knowledge` (pgvector cosine similarity)
+  1. Embed the user query via Gemini Embedding API (non-blocking)
+  2. Call Supabase RPC `match_knowledge` (pgvector cosine similarity, non-blocking)
   3. Return matched rows as RetrievedDocument list
 """
 
+import asyncio
 import logging
 
 from supabase import Client, create_client
@@ -34,7 +35,7 @@ class SupabaseKnowledgeRetriever(RetrieverPort):
         self._match_threshold = match_threshold
 
     def _embed(self, text: str) -> list[float]:
-        """Generate an embedding vector for *text* using Gemini."""
+        """Generate an embedding vector for *text* using Gemini (sync, call via to_thread)."""
         from google.genai import types
         result = self._genai_client.models.embed_content(
             model=self._embedding_model,
@@ -43,28 +44,33 @@ class SupabaseKnowledgeRetriever(RetrieverPort):
         )
         return result.embeddings[0].values
 
-    async def retrieve(self, query: str, top_k: int = 5) -> list[RetrievedDocument]:
+    def _rpc_execute(self, query_embedding: list[float], top_k: int) -> list[dict]:
+        """Execute Supabase RPC synchronously (call via to_thread)."""
+        response = (
+            self._client.rpc(
+                "match_knowledge",
+                {
+                    "query_embedding": query_embedding,
+                    "match_count": top_k,
+                    "match_threshold": self._match_threshold,
+                },
+            ).execute()
+        )
+        return response.data or []
+
+    async def retrieve(self, query: str, top_k: int = 3) -> list[RetrievedDocument]:
         """Retrieve relevant knowledge entries via pgvector similarity search."""
         try:
-            query_embedding = self._embed(query)
+            # Off-load blocking I/O calls to thread pool to avoid stalling the event loop
+            query_embedding = await asyncio.to_thread(self._embed, query)
+            rows = await asyncio.to_thread(self._rpc_execute, query_embedding, top_k)
 
-            response = (
-                self._client.rpc(
-                    "match_knowledge",
-                    {
-                        "query_embedding": query_embedding,
-                        "match_count": top_k,
-                        "match_threshold": self._match_threshold,
-                    },
-                ).execute()
-            )
-
-            if not response.data:
+            if not rows:
                 logger.info("No matching knowledge entries found.")
                 return []
 
             documents: list[RetrievedDocument] = []
-            for row in response.data:
+            for row in rows:
                 metadata = row.get("metadata") or {}
                 metadata["title"] = row.get("title", "")
                 metadata["category"] = row.get("category", "")
