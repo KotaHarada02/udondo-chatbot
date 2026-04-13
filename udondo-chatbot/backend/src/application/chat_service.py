@@ -3,6 +3,7 @@ Chat Service — Application layer orchestrator for RAG pipeline.
 Depends only on abstract ports, never on concrete infrastructure.
 """
 
+import asyncio
 import time
 import logging
 from collections.abc import AsyncGenerator
@@ -45,7 +46,7 @@ class ChatService:
         start_time = time.time()
 
         # Step 1: Retrieve relevant documents
-        documents = await self._retriever.retrieve(query=message, top_k=5)
+        documents = await self._retriever.retrieve(query=message, top_k=3)
 
         # Step 2: Format context from retrieved documents
         context = self._format_context(documents)
@@ -61,39 +62,40 @@ class ChatService:
             full_response += chunk
             yield chunk
 
-        # Step 4: Save chat logs (fire-and-forget, non-blocking)
+        # Step 4: Save chat logs (truly fire-and-forget via background task)
         elapsed = time.time() - start_time
         settings = get_settings()
 
         if self._chat_log:
-            try:
-                # Save user message
-                user_entry = ChatLogEntry(
-                    id=user_message_id,
-                    session_id=session_id,
-                    role="user",
-                    content=message,
-                    metadata={"language": language},
-                )
-                await self._chat_log.save_message(user_entry)
+            async def _save_logs():
+                try:
+                    user_entry = ChatLogEntry(
+                        id=user_message_id,
+                        session_id=session_id,
+                        role="user",
+                        content=message,
+                        metadata={"language": language},
+                    )
+                    await self._chat_log.save_message(user_entry)
 
-                # Save assistant message
-                assistant_entry = ChatLogEntry(
-                    id=assistant_message_id,
-                    session_id=session_id,
-                    role="assistant",
-                    content=full_response,
-                    model_used=settings.llm_model,
-                    tokens=len(full_response),
-                    metadata={
-                        "language": language,
-                        "processing_time_sec": round(elapsed, 2),
-                        "retrieved_docs": len(documents),
-                    },
-                )
-                await self._chat_log.save_message(assistant_entry)
-            except Exception as e:
-                logger.error(f"Failed to save chat logs: {e}", exc_info=True)
+                    assistant_entry = ChatLogEntry(
+                        id=assistant_message_id,
+                        session_id=session_id,
+                        role="assistant",
+                        content=full_response,
+                        model_used=settings.llm_model,
+                        tokens=len(full_response),
+                        metadata={
+                            "language": language,
+                            "processing_time_sec": round(elapsed, 2),
+                            "retrieved_docs": len(documents),
+                        },
+                    )
+                    await self._chat_log.save_message(assistant_entry)
+                except Exception as e:
+                    logger.error(f"Failed to save chat logs: {e}", exc_info=True)
+
+            asyncio.ensure_future(_save_logs())
 
     @staticmethod
     def _format_context(documents: list[RetrievedDocument]) -> str:
