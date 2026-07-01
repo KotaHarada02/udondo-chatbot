@@ -24,6 +24,10 @@ function generateUUID(): string {
   return crypto.randomUUID()
 }
 
+// Only the most recent messages are sent as history, so payload size and
+// token usage don't grow without bound as a conversation gets longer.
+const MAX_HISTORY_MESSAGES = 20
+
 function PlanetGuideChatInner() {
   const { t, locale } = useI18n()
   const [mode, setMode] = useState<ChatMode>("text")
@@ -79,6 +83,7 @@ function PlanetGuideChatInner() {
         // Prepare history format for API
         const history = messages
           .filter(m => !m.isWelcome) // Or include welcome msg, up to you. Usually we ignore static messages.
+          .slice(-MAX_HISTORY_MESSAGES)
           .map(m => ({ role: m.role, content: m.content }));
 
         const response = await fetch(`${apiUrl}/api/v1/chat`, {

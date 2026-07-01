@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from src.api.dependencies import get_chat_service, get_chat_log_adapter
 from src.application.chat_service import ChatService
+from src.core.rate_limit import enforce_rate_limit, verify_api_key
 from src.domain.models.message import ChatRequest
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class EvaluationRequest(BaseModel):
     evaluation: str = Field(..., description="Evaluation value: 'good' or 'bad'")
 
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(verify_api_key), Depends(enforce_rate_limit)])
 async def chat_endpoint(
     request: ChatRequest,
     chat_service: ChatService = Depends(get_chat_service),
@@ -71,7 +72,7 @@ async def chat_endpoint(
     )
 
 
-@router.patch("/chat/evaluate")
+@router.patch("/chat/evaluate", dependencies=[Depends(verify_api_key), Depends(enforce_rate_limit)])
 async def evaluate_message(request: EvaluationRequest):
     """Update the evaluation (good/bad) for an existing chat message."""
     chat_log = get_chat_log_adapter()

@@ -81,7 +81,7 @@ sequenceDiagram
 
 - フレームワーク: Next.js（App Router）
 - React: 19 系
-- 多言語対応: `next-intl`
+- 多言語対応: `lib/i18n.tsx`（Reactコンテキスト、`I18nProvider`/`useI18n`）
 - API通信
 	- `NEXT_PUBLIC_API_URL` でバックエンドURLを指定
 	- `POST /api/v1/chat` を `text/event-stream` で受信
@@ -104,6 +104,10 @@ sequenceDiagram
 	"language": "ja"
 }
 ```
+
+- `message` は1〜2000文字。範囲外は422を返します。
+- `API_KEY` を設定している場合、`X-API-Key` ヘッダーが必須です（未設定時はチェックなし）。
+- IPごとに `RATE_LIMIT_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS` の上限を超えると429を返します（`Retry-After`ヘッダー付き）。
 
 - SSEイベント（`data:`）
 
@@ -161,8 +165,21 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your-anon-key
 CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
 EMBEDDING_MODEL=gemini-embedding-001
 LLM_MODEL=gemini-2.5-flash-lite
+# LLMに渡す直近の会話履歴の件数上限（フロントが送った履歴がこれより長い場合は末尾N件のみ使用）
+MAX_HISTORY_MESSAGES=20
 RETRIEVAL_TOP_K=5
+MATCH_THRESHOLD=0.3
+
+# 任意: 未設定なら無効（本番で任意有効化するシンプルな共有シークレット）
+API_KEY=
+
+# 1つのIPが/api/v1/chatと/chat/evaluateに対して送れるリクエスト数/秒数
+RATE_LIMIT_REQUESTS=20
+RATE_LIMIT_WINDOW_SECONDS=60
 ```
+
+> `RATE_LIMIT_*` は単一プロセスのメモリ内カウンタで実装しています。個人開発規模の単一インスタンス運用を想定した簡易対策で、複数ワーカー/複数インスタンス構成では有効に機能しません（その場合はRedis等の共有ストアへの置き換えが必要です）。
+> `API_KEY` はフロントエンドから送る場合は`NEXT_PUBLIC_*`としてブラウザに露出するため、悪意ある利用者への完全な防御にはなりません。単純なボット・スキャナー対策としての位置づけです。
 
 フロントエンド側（`frontend/.env.local`）:
 
@@ -178,9 +195,8 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 udondo-chatbot/
 	backend/
 		pyproject.toml
-		data/
-			knowledge_base.json
-			chroma_db/
+		scripts/
+			generate_embeddings.py
 		src/
 			main.py
 			api/
@@ -190,15 +206,13 @@ udondo-chatbot/
 			infrastructure/
 	frontend/
 		package.json
-		messages/
-			ja.json
-			en.json
-		src/
-			app/
-			entities/
-			features/
-			shared/
-			widgets/
+		next.config.mjs
+		app/
+		components/
+		lib/
+			i18n.tsx
+		api/
+			index.py   # Vercel Python Serverless Functionのエントリポイント（backend/を同梱してデプロイ）
 ```
 
 ## 6. セットアップと実行方法
@@ -264,8 +278,10 @@ curl -N -X POST http://localhost:8000/api/v1/chat \
 
 ## 8. 開発時の注意点
 
-- ナレッジのインジェスト（ベクトル化）は、必要に応じて `backend/scripts/generate_embeddings.py` を手動で実行してください。
-- バックエンドを初めて稼働させる前に、Supabase で `pgvector` 拡張と `knowledge_base`, `chat_logs` などのテーブル、RPC関数の配備が必要です。
+- ナレッジの投入手順（`knowledge_base`テーブルへの行の追加を読み込むコードは無いため、以下を手動で行います）
+	1. Supabaseの`knowledge_base`テーブルに `title` / `content` / `category` などの行を直接INSERTする（SQL EditorやTable Editorを利用）
+	2. `backend/scripts/generate_embeddings.py` を実行し、`embedding`がNULLの行に対してGemini Embeddingを生成・保存する
+- バックエンドを初めて稼働させる前に、Supabase で `pgvector` 拡張と `knowledge_base`, `chat_logs` などのテーブル、RPC関数（`match_knowledge`）の配備が必要です。
 - CORSで許可していないオリジンからはAPIアクセスできません
 - `.env.local` は機密情報を含むため、リポジトリにコミットしないでください
 
@@ -277,11 +293,11 @@ curl -N -X POST http://localhost:8000/api/v1/chat \
 	- `NEXT_PUBLIC_API_URL` とバックエンドポートを確認
 	- CORS設定を確認
 - 回答が空または期待より弱い
-	- `backend/data/knowledge_base.json` の内容とインジェスト結果を確認
+	- Supabaseの`knowledge_base`テーブルの内容と`embedding`列のインジェスト結果を確認
 
 ## 10. 今後の拡張候補
 
-- 認証/認可（JWTやAPIキー）
+- 本格的な認証/認可（JWTなど。現状は簡易なAPIキー検証＋IPベースレート制限のみ）
 - 会話履歴の永続化
 - ナレッジ更新の差分インジェスト
 - テスト自動化（API・E2E）

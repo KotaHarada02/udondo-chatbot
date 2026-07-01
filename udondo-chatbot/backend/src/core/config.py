@@ -31,10 +31,23 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
+    # --- Security ---
+    # Optional shared-secret header check (X-API-Key). Disabled when empty.
+    api_key: str = ""
+    # Simple in-memory per-IP rate limit applied to /api/v1/chat and /chat/evaluate.
+    rate_limit_requests: int = 20
+    rate_limit_window_seconds: int = 60
+
     # --- RAG ---
     embedding_model: str = "gemini-embedding-001"
     llm_model: str = "gemini-2.5-flash-lite"
     retrieval_top_k: int = 5
+    match_threshold: float = 0.3
+
+    # --- History ---
+    # Only the most recent N messages are sent to the LLM, regardless of how
+    # much history the client includes in the request.
+    max_history_messages: int = 20
 
     # .env.local is used for local development; on Vercel, env vars are injected.
     _env_file_path = Path(__file__).resolve().parent.parent.parent.parent / ".env.local"

@@ -15,11 +15,25 @@ class RetrievedDocument:
     score: float = 0.0
 
 
+@dataclass
+class RetrievalResult:
+    """Outcome of a retrieval attempt.
+
+    `ok=False` means the search itself failed (e.g. embedding/network/DB error);
+    `ok=True` with an empty `documents` list means the search ran fine but found
+    no matches. Callers need this distinction to tell "nothing relevant" apart
+    from "couldn't search".
+    """
+    documents: list[RetrievedDocument] = field(default_factory=list)
+    ok: bool = True
+    error: str | None = None
+
+
 class RetrieverPort(ABC):
     """Abstract interface for knowledge retrieval."""
 
     @abstractmethod
-    async def retrieve(self, query: str, top_k: int = 5) -> list[RetrievedDocument]:
+    async def retrieve(self, query: str, top_k: int = 5) -> RetrievalResult:
         """
         Retrieve the most relevant documents for the given query.
 
@@ -28,6 +42,7 @@ class RetrieverPort(ABC):
             top_k: Maximum number of documents to return.
 
         Returns:
-            List of retrieved documents ordered by relevance.
+            A RetrievalResult carrying the documents (if any) and whether the
+            search itself succeeded.
         """
         ...  # pragma: no cover
