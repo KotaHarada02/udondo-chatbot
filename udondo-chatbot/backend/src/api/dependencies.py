@@ -31,6 +31,7 @@ def get_retriever_adapter() -> SupabaseKnowledgeRetriever:
         supabase_key=settings.supabase_key,
         gemini_api_key=settings.gemini_api_key,
         embedding_model=settings.embedding_model,
+        match_threshold=settings.match_threshold,
     )
 
 

@@ -13,7 +13,7 @@ import logging
 from supabase import Client, create_client
 from google import genai
 
-from src.domain.interfaces.retriever_port import RetrieverPort, RetrievedDocument
+from src.domain.interfaces.retriever_port import RetrievalResult, RetrieverPort, RetrievedDocument
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class SupabaseKnowledgeRetriever(RetrieverPort):
         )
         return response.data or []
 
-    async def retrieve(self, query: str, top_k: int = 3) -> list[RetrievedDocument]:
+    async def retrieve(self, query: str, top_k: int = 3) -> RetrievalResult:
         """Retrieve relevant knowledge entries via pgvector similarity search."""
         try:
             # Off-load blocking I/O calls to thread pool to avoid stalling the event loop
@@ -66,8 +66,8 @@ class SupabaseKnowledgeRetriever(RetrieverPort):
             rows = await asyncio.to_thread(self._rpc_execute, query_embedding, top_k)
 
             if not rows:
-                logger.info("No matching knowledge entries found.")
-                return []
+                logger.info(f"No matching knowledge entries found for query={query!r}.")
+                return RetrievalResult(documents=[], ok=True)
 
             documents: list[RetrievedDocument] = []
             for row in rows:
@@ -88,8 +88,11 @@ class SupabaseKnowledgeRetriever(RetrieverPort):
                 f"Retrieved {len(documents)} documents (top similarity: "
                 f"{documents[0].score:.3f})"
             )
-            return documents
+            return RetrievalResult(documents=documents, ok=True)
 
         except Exception as e:
-            logger.error(f"Supabase knowledge retrieval failed: {e}", exc_info=True)
-            return []
+            logger.error(
+                f"Supabase knowledge retrieval failed for query={query!r} top_k={top_k}: {e}",
+                exc_info=True,
+            )
+            return RetrievalResult(documents=[], ok=False, error=str(e))

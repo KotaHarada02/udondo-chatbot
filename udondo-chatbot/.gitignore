@@ -14,8 +14,6 @@ build/
 .venv/
 venv/
 
-# ## Vector Store ##
-backend/data/chroma_db/
 
 # ## Next.js ##
 frontend/.next/

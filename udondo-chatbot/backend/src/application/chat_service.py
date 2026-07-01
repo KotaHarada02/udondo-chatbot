@@ -44,9 +44,17 @@ class ChatService:
         4. Save user + assistant messages to chat log
         """
         start_time = time.time()
+        settings = get_settings()
+        history = history[-settings.max_history_messages:]
 
         # Step 1: Retrieve relevant documents
-        documents = await self._retriever.retrieve(query=message, top_k=3)
+        retrieval_result = await self._retriever.retrieve(query=message, top_k=settings.retrieval_top_k)
+        documents = retrieval_result.documents
+        if not retrieval_result.ok:
+            logger.warning(
+                f"Continuing without retrieved context (session_id={session_id}): "
+                f"{retrieval_result.error}"
+            )
 
         # Step 2: Format context from retrieved documents
         context = self._format_context(documents)
@@ -64,7 +72,6 @@ class ChatService:
 
         # Step 4: Save chat logs (truly fire-and-forget via background task)
         elapsed = time.time() - start_time
-        settings = get_settings()
 
         if self._chat_log:
             async def _save_logs():
@@ -89,6 +96,7 @@ class ChatService:
                             "language": language,
                             "processing_time_sec": round(elapsed, 2),
                             "retrieved_docs": len(documents),
+                            "retrieval_ok": retrieval_result.ok,
                         },
                     )
                     await self._chat_log.save_message(assistant_entry)

@@ -13,7 +13,12 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     """Incoming chat request from the client."""
-    message: str = Field(..., description="User's current message")
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description="User's current message (1-2000 characters)",
+    )
     history: list[ChatMessage] = Field(
         default_factory=list,
         description="Previous conversation messages for context",
